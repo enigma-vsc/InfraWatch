@@ -13,14 +13,17 @@ from rich.console import Console
 from rich.table import Table
 from rich import print
 from datetime import datetime
+from dotenv import find_dotenv, load_dotenv
 import sys
+import os
+
 
 class AzureProvider:
     """Azure connection and VM operations"""
     
     def __init__(self, subscription_id=None):
-        self.subscription_id = subscription_id
         self.console = Console()
+        self.subscription_id = subscription_id or self.get_subscription_id()
         self.credential = None
         self.compute_client = None
         self.network_client = None
@@ -50,35 +53,20 @@ class AzureProvider:
     
     def get_subscription_id(self):
         """Get subscription ID if not provided"""
-        if self.subscription_id:
-            return self.subscription_id
-            
-        try:
-            # Get default subscription from Azure CLI
-            import subprocess
-            result = subprocess.run(['az', 'account', 'show', '--query', 'id', '-o', 'tsv'], 
-                                  capture_output=True, text=True)
-            if result.returncode == 0:
-                return result.stdout.strip()
-        except:
-            pass
-            
-        self.console.print("[red]❌ Could not determine subscription ID![/red]")
-        self.console.print("Please provide subscription ID or run: [cyan]az login[/cyan]")
-        return None
+        self.subscription_id = os.getenv('AZURE_SUBSCRIPTION_ID')
+        if not self.subscription_id:
+            raise ValueError("❌ Error: AZURE_SUBSCRIPTION_ID is not defined. Please set it in your environment variables.")
+        return self.subscription_id
+
     
     def initialize_clients(self):
         """Initialize Azure management clients"""
         if not self.authenticate():
             return False
             
-        subscription_id = self.get_subscription_id()
-        if not subscription_id:
-            return False
-            
         try:
-            self.compute_client = ComputeManagementClient(self.credential, subscription_id)
-            self.network_client = NetworkManagementClient(self.credential, subscription_id)
+            self.compute_client = ComputeManagementClient(self.credential, self.subscription_id)
+            self.network_client = NetworkManagementClient(self.credential, self.subscription_id)
             return True
         except Exception as e:
             self.console.print(f"[red]❌ Error initializing Azure clients: {e}[/red]")
@@ -236,8 +224,17 @@ def display_vms_table(vms):
 
 def main():
     """Main entry point"""
+    env_path = find_dotenv()
+    print(f"Found .env file at: {env_path}")
+    if not env_path:
+        print("No .env file found. Please create one with your Azure credentials.")
+        sys.exit(1)
+    # Load environment variables
+    load_dotenv(env_path)
+    load_dotenv()
+    print(os.getenv("AZURE_SUBSCRIPTION_ID")) 
+    #print('Client ID',os.getenv('AZURE_CLIENT_ID'))
     console = Console()
-    
     # Print header
     console.print("\n🔍 [bold blue]InfraWatch[/bold blue] - Azure VM Monitor")
     console.print("=" * 50)

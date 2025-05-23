@@ -1,2 +1,3 @@
 /venv
-src/providers/__pycache__
+__pycache__
+.env
