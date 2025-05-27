@@ -36,6 +36,11 @@ def list_virtual_machines(client: ComputeManagementClient):
     vms = client.virtual_machines.list_all()
     for vm in vms:
         print(vm.name)
+        print(f"  Location: {vm.location}")
+        print(f"  Size: {vm.hardware_profile.vm_size}")
+        print(f"  OS: {vm.storage_profile.os_disk.os_type}")
+        # print(f"  Provisioning State: {vm.provisioning_state}")
+        print(f"  Tags: {vm.tags if vm.tags else 'No tags'}")
 
 
 def main():
